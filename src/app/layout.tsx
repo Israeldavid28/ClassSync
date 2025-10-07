@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'ClassSync AI',
+  title: 'ClassSync',
   description: 'An AI-powered app to manage your class schedule.',
 };
 

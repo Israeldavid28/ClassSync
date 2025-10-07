@@ -154,7 +154,7 @@ export default function Home() {
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
       <footer className="py-4 text-center text-sm text-muted-foreground">
-        <p>Built with ❤️ for students everywhere. ClassSync AI &copy; {new Date().getFullYear()}</p>
+        <p>Built with ❤️ for students everywhere. ClassSync &copy; {new Date().getFullYear()}</p>
       </footer>
     </>
   );
