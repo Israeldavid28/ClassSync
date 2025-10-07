@@ -66,8 +66,8 @@ export function UploadTimetable({ onUpload }: UploadTimetableProps) {
       <div className="grid md:grid-cols-2">
         <div className="p-8 flex flex-col justify-center">
           <CardHeader className="p-0 mb-6">
-            <CardTitle className="text-3xl font-headline">Sync Your Schedule</CardTitle>
-            <CardDescription>Upload a photo of your timetable to get started.</CardDescription>
+            <CardTitle className="text-3xl font-headline">Sincroniza Tu Horario</CardTitle>
+            <CardDescription>Sube una foto de tu horario para empezar.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
