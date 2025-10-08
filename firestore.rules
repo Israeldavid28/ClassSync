@@ -1,0 +1,85 @@
+/**
+ * @fileoverview Firestore Security Rules for ClassSync AI.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user can only access their own profile data and class events.
+ *
+ * Data Structure:
+ * - User profiles are stored in `/users/{userProfileId}`, where `{userProfileId}` must match the user's Firebase Auth UID.
+ * - Class events associated with users are stored in the subcollection `/users/{userProfileId}/classEvents/{classEventId}`.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profiles and class events.
+ * - Listing of all users is disallowed to protect user privacy.
+ * - All write operations require the user to be authenticated.
+ * - Data consistency between the path and the document's internal `id` field is enforced on create and maintained on update.
+ *
+ * Denormalization for Authorization:
+ * The `classEvents` documents denormalize the `userProfileId` field, which matches the parent path.
+ * This enables direct authorization without additional reads.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secures user profile documents, ensuring only the owner can read and write.
+     * @path /users/{userProfileId}
+     * @allow (create) User with UID 'user_abc' can create their profile if userProfileId matches their UID.
+     * @allow (get) User with UID 'user_abc' can read their profile if userProfileId matches their UID.
+     * @allow (update) User with UID 'user_abc' can update their profile if userProfileId matches their UID.
+     * @allow (delete) User with UID 'user_abc' can delete their profile if userProfileId matches their UID.
+     * @deny (create) User with UID 'user_xyz' cannot create a profile with userProfileId 'user_abc'.
+     * @deny (get) User with UID 'user_xyz' cannot read the profile with userProfileId 'user_abc'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userProfileId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userProfileId) {
+        return request.auth.uid == userProfileId;
+      }
+
+      function isExistingOwner(userProfileId) {
+        return isOwner(userProfileId) && resource != null;
+      }
+      allow get: if isOwner(userProfileId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userProfileId) && request.resource.data.id == userProfileId;
+      allow update: if isExistingOwner(userProfileId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userProfileId);
+    }
+
+    /**
+     * @description Secures class event documents within a user's profile.
+     * @path /users/{userProfileId}/classEvents/{classEventId}
+     * @allow (create) User with UID 'user_abc' can create a class event under their profile.
+     * @allow (get) User with UID 'user_abc' can read a class event under their profile.
+     * @allow (update) User with UID 'user_abc' can update a class event under their profile.
+     * @allow (delete) User with UID 'user_abc' can delete a class event under their profile.
+     * @deny (create) User with UID 'user_xyz' cannot create a class event under userProfileId 'user_abc'.
+     * @deny (get) User with UID 'user_xyz' cannot read a class event under userProfileId 'user_abc'.
+     * @principle Enforces document ownership and validates parent-child relationship on creation and enforces immutability of the parent-child relationship on update.
+     */
+    match /users/{userProfileId}/classEvents/{classEventId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userProfileId) {
+        return request.auth.uid == userProfileId;
+      }
+
+      function isExistingOwner(userProfileId) {
+        return isOwner(userProfileId) && resource != null;
+      }
+      allow get: if isOwner(userProfileId);
+      allow list: if isOwner(userProfileId);
+      allow create: if isSignedIn() && isOwner(userProfileId) && request.resource.data.userProfileId == userProfileId;
+      allow update: if isExistingOwner(userProfileId) && request.resource.data.userProfileId == resource.data.userProfileId;
+      allow delete: if isExistingOwner(userProfileId);
+    }
+  }
+}

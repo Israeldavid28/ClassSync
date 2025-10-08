@@ -1,0 +1,127 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user of the ClassSync AI application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    },
+    "ClassEvent": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClassEvent",
+      "type": "object",
+      "description": "Represents a class event in the user's schedule.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ClassEvent entity."
+        },
+        "userProfileId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N ClassEvent)"
+        },
+        "className": {
+          "type": "string",
+          "description": "Name of the class."
+        },
+        "startTime": {
+          "type": "string",
+          "description": "Start time of the class (e.g., '09:00')."
+        },
+        "endTime": {
+          "type": "string",
+          "description": "End time of the class (e.g., '10:00')."
+        },
+        "dayOfWeek": {
+          "type": "string",
+          "description": "Day of the week the class occurs (e.g., 'Monday')."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the class."
+        },
+        "reminderMinutesBefore": {
+          "type": "number",
+          "description": "Number of minutes before the class to send a reminder."
+        }
+      },
+      "required": [
+        "id",
+        "userProfileId",
+        "className",
+        "startTime",
+        "endTime",
+        "dayOfWeek",
+        "location",
+        "reminderMinutesBefore"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userProfileId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. Each document is uniquely identified by the user's UID, ensuring private access based on path-based ownership.",
+          "params": [
+            {
+              "name": "userProfileId",
+              "description": "The unique identifier for the user profile, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userProfileId}/classEvents/{classEventId}",
+        "definition": {
+          "entityName": "ClassEvent",
+          "schema": {
+            "$ref": "#/backend/entities/ClassEvent"
+          },
+          "description": "Stores class events associated with a specific user. Path-based ownership ensures that only the authenticated user can access their own class events.",
+          "params": [
+            {
+              "name": "userProfileId",
+              "description": "The unique identifier for the user profile who owns the class event."
+            },
+            {
+              "name": "classEventId",
+              "description": "The unique identifier for the class event."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage user profiles and class events for the ClassSync AI application. It leverages path-based ownership for data privacy and simplifies security rules by adhering to structural segregation and denormalization for authorization independence. User profiles are stored in the `/users/{userId}` collection, ensuring private access. Class events, owned by users, are stored within a subcollection `/users/{userId}/classEvents/{classEventId}`, reinforcing ownership and enabling efficient data retrieval and security rules. This design eliminates the need for `get()` calls in security rules by guaranteeing that each class event is directly associated with a user profile, achieving authorization independence. The use of path-based ownership ensures secure list operations, fulfilling the QAPs requirement. Overall, the structure prioritizes security, scalability, and debuggability by focusing on clear ownership and data segregation."
+  }
+}
