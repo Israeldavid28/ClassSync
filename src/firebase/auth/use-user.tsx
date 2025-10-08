@@ -30,8 +30,13 @@ export function useUser(): UserAuthResult {
   return { user, isUserLoading, userError };
 }
 
-export function initiateGoogleSignIn() {
-  const { toast } = useToast();
+type ToastFunc = ReturnType<typeof useToast>['toast'];
+
+interface InitiateGoogleSignInParams {
+  toast: ToastFunc;
+}
+
+export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
   // It's better to get auth from the provider if possible, but getAuth() is a fallback
   try {
     const auth = getAuth();
@@ -56,8 +61,11 @@ export function initiateGoogleSignIn() {
   }
 }
 
-export function handleSignOut() {
-  const { toast } = useToast();
+interface HandleSignOutParams {
+  toast: ToastFunc;
+}
+
+export function handleSignOut({ toast }: HandleSignOutParams) {
    try {
     const auth = getAuth();
     signOut(auth).catch((error) => {

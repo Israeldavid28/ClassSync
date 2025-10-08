@@ -11,10 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useToast } from '@/hooks/use-toast';
 
 
 export const Header: FC = () => {
   const { user } = useUser();
+  const { toast } = useToast();
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
@@ -54,7 +56,7 @@ export const Header: FC = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={() => handleSignOut({toast})}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>
