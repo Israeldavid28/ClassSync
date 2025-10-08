@@ -31,45 +31,6 @@ export function useUser(): UserAuthResult {
 
 type ToastFunc = ReturnType<typeof useToast>['toast'];
 
-interface InitiateGoogleSignInParams {
-  toast: ToastFunc;
-}
-
-export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
-  try {
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/calendar.events');
-    provider.setCustomParameters({
-      prompt: 'select_account'
-    });
-
-    signInWithPopup(auth, provider).catch((error) => {
-      console.error('Error de inicio de sesión con Google:', error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        // This is a common case, so we can handle it gracefully.
-        toast({
-          title: 'Inicio de Sesión Cancelado',
-          description: 'La ventana de inicio de sesión se cerró antes de completar.',
-        });
-        return;
-      }
-      toast({
-        title: 'Fallo al Iniciar Sesión',
-        description: error.message || 'Ocurrió un error inesperado durante el inicio de sesión.',
-        variant: 'destructive',
-      });
-    });
-  } catch(e) {
-      console.error("Firebase no está inicializado. No se puede iniciar sesión.");
-       toast({
-        title: 'Error',
-        description: 'Firebase aún no está listo, espera un momento y vuelve a intentarlo.',
-        variant: 'destructive',
-      });
-  }
-}
-
 export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Promise<string | null> {
   try {
     const auth = getAuth();
@@ -101,7 +62,7 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
       });
     } else {
       toast({
-        title: 'Fallo de Autenticación',
+        title: 'Fallo al Iniciar Sesión',
         description: error.message || 'Ocurrió un error inesperado al intentar autenticarse con Google.',
         variant: 'destructive',
       });

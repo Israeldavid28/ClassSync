@@ -11,7 +11,7 @@ import { handleTimetableUpload } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser, initiateGoogleSignIn } from '@/firebase/auth/use-user';
+import { useUser, getGoogleAccessToken } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -46,13 +46,25 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class,
 }
 
 function LoginPage({ toast }: { toast: ReturnType<typeof useToast>['toast'] }) {
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    await getGoogleAccessToken({ toast });
+    // No need to setIsLoggingIn(false) because the component will unmount on successful login
+  };
+
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 h-[60vh]">
       <h2 className="text-2xl font-bold mb-4">Bienvenido a ClassSync</h2>
       <p className="text-muted-foreground mb-6">Inicia sesión con tu cuenta de Google para empezar.</p>
-      <Button onClick={() => initiateGoogleSignIn({ toast })} size="lg">
-        <FcGoogle className="mr-2 h-5 w-5" />
-        Iniciar Sesión con Google
+      <Button onClick={handleLogin} size="lg" disabled={isLoggingIn}>
+        {isLoggingIn ? (
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        ) : (
+          <FcGoogle className="mr-2 h-5 w-5" />
+        )}
+        {isLoggingIn ? 'Iniciando Sesión...' : 'Iniciar Sesión con Google'}
       </Button>
     </div>
   );
