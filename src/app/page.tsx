@@ -197,7 +197,7 @@ export default function Home() {
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
       <footer className="py-4 text-center text-sm text-muted-foreground px-4">
-        <p>Construido con ❤️ para estudiantes de todo el mundo. ClassSync &copy; {new Date().getFullYear()}</p>
+        <p>Desarrollado por Israel Escalona, todos los derechos reservados. ClassSync &copy; {new Date().getFullYear()}</p>
       </footer>
     </>
   );
