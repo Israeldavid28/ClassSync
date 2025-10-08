@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signOut,
   User,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { useEffect, useState, useContext } from 'react';
 import { FirebaseContext, useFirebase } from '@/firebase/provider'; 
@@ -24,7 +25,7 @@ export function useUser(): UserAuthResult {
 
 type ToastFunc = ReturnType<typeof useToast>['toast'];
 
-export async function handleGoogleSignIn({ toast }: { toast: ToastFunc }): Promise<void> {
+export async function handleGoogleSignIn({ toast, isMobile }: { toast: ToastFunc, isMobile: boolean }): Promise<void> {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
   provider.addScope('https://www.googleapis.com/auth/calendar.events');
@@ -33,13 +34,16 @@ export async function handleGoogleSignIn({ toast }: { toast: ToastFunc }): Promi
   });
 
   try {
-    // Calling this function will trigger the onAuthStateChanged listener in the provider
-    // which will then update the user state for the whole application.
-    await signInWithPopup(auth, provider);
+    if (isMobile) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      await signInWithPopup(auth, provider);
+    }
+    // The onAuthStateChanged listener in FirebaseProvider will handle the user state update.
   } catch (error: any) {
     console.error('Error durante el inicio de sesión con Google:', error);
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-      // This is a common case, and we don't need to show a toast, as the user intentionally closed the popup.
+       // This is a common case, and we don't need to show a toast, as the user intentionally closed the popup.
     } else {
       toast({
         title: 'Fallo al Iniciar Sesión',

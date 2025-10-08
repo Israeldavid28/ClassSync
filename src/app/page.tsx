@@ -15,7 +15,9 @@ import { useUser, handleGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { getAuth, getRedirectResult } from 'firebase/auth';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class, 'id'>[] {
@@ -71,6 +73,37 @@ export default function Home() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const isMobile = useIsMobile();
+  
+  // This effect handles the result of a redirect sign-in on mobile.
+  useEffect(() => {
+    // Only run on the client, and only if the user isn't already loaded.
+    if (typeof window !== 'undefined' && !user) {
+      const auth = getAuth();
+      // When the page loads after a redirect, this gets the result.
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result) {
+            // User is signed in. The onAuthStateChanged listener will handle the state update.
+            // You can optionally get token here if needed: const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
+          }
+        })
+        .catch((error) => {
+          // Handle errors here.
+          console.error('Error during redirect sign-in:', error);
+          toast({
+            title: 'Fallo al Iniciar Sesión',
+            description: error.message || 'No se pudo completar el inicio de sesión.',
+            variant: 'destructive',
+          });
+        })
+        .finally(() => {
+          // In case the page is loading for a redirect result,
+          // we can manage a loading state. For now, the global `isUserLoading` handles this.
+        });
+    }
+  }, [toast, user]);
+
 
   // Fetch classes from Firestore
   const classesQuery = useMemoFirebase(() => {
@@ -82,15 +115,17 @@ export default function Home() {
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      await handleGoogleSignIn({ toast });
-      // The onAuthStateChanged listener in FirebaseProvider will handle the user state update.
-      // We don't need to do anything else here.
+      // Pass the isMobile flag to the sign-in handler.
+      await handleGoogleSignIn({ toast, isMobile });
+      // For popup, the user state updates almost immediately.
+      // For redirect, the page will reload, and the `useEffect` above will handle the result.
     } catch (e) {
        // Error is already toasted inside handleGoogleSignIn
     } finally {
-      // The loading state will be resolved by the isUserLoading flag from the useUser hook.
-      // We can set this to false, but the UI transition is primarily handled by isUserLoading.
-      setIsLoggingIn(false);
+      // For popups, we can set loading to false. For redirects, the page will reload anyway.
+      if (!isMobile) {
+        setIsLoggingIn(false);
+      }
     }
   };
   
@@ -128,7 +163,7 @@ export default function Home() {
         if (result.data.length === 0) {
           toast({
             title: 'Horario Escaneado',
-            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manually.",
           });
         } else {
           const parsed = parseRawClasses(result.data);
@@ -229,7 +264,7 @@ export default function Home() {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, interpretedClasses, isLoggingIn]);
+  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, interpretedClasses, isLoggingIn, handleLogin]);
 
   return (
     <>

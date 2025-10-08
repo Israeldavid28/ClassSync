@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -69,7 +69,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    // The listener is set up once when the provider mounts.
+    // Check for redirect result when the component mounts.
+    getRedirectResult(auth).catch((error) => {
+      // This can happen if the user clicks "back" during the redirect flow.
+      // We don't want to crash the app, just log it.
+      console.error("Error processing redirect result:", error);
+    });
+
+    // The onAuthStateChanged listener handles both initial state and subsequent changes.
+    // It will fire after getRedirectResult has been processed and Firebase has a user.
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => { // Auth state determined
