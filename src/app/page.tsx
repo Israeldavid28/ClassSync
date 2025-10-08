@@ -47,7 +47,7 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class,
 
 function LoginPage({ onLogin, isLoggingIn }: { onLogin: () => Promise<void>; isLoggingIn: boolean }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 h-[60vh]">
+    <div className="flex flex-col items-center justify-center text-center p-8 h-[50vh] sm:h-[60vh]">
       <h2 className="text-2xl font-bold mb-4">Bienvenido a ClassSync</h2>
       <p className="text-muted-foreground mb-6">Inicia sesión con tu cuenta de Google para empezar.</p>
       <Button onClick={onLogin} size="lg" disabled={isLoggingIn}>
@@ -237,7 +237,7 @@ export default function Home() {
       <main className="flex-grow container mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
-      <footer className="py-4 text-center text-sm text-muted-foreground px-4">
+      <footer className="py-4 text-center text-sm text-muted-foreground px-4 relative z-0">
         <p>Desarrollado por Israel Escalona, todos los derechos reservados. ClassSync &copy; {new Date().getFullYear()}</p>
       </footer>
     </>
