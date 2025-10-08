@@ -11,8 +11,7 @@ import { handleTimetableUpload } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase/auth/use-user';
-import { initiateGoogleSignIn } from '@/firebase/auth/use-user';
+import { useUser, initiateGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 
 const dayMap: { [key: string]: Class['day'] } = {
@@ -60,12 +59,12 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Class[] {
 
 function LoginPage() {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8">
-      <h2 className="text-2xl font-bold mb-4">Welcome to ClassSync</h2>
-      <p className="text-muted-foreground mb-6">Sign in with your Google account to get started.</p>
+    <div className="flex flex-col items-center justify-center text-center p-8 h-[60vh]">
+      <h2 className="text-2xl font-bold mb-4">Bienvenido a ClassSync</h2>
+      <p className="text-muted-foreground mb-6">Inicia sesión con tu cuenta de Google para empezar.</p>
       <Button onClick={initiateGoogleSignIn} size="lg">
         <FcGoogle className="mr-2 h-5 w-5" />
-        Sign In with Google
+        Iniciar Sesión con Google
       </Button>
     </div>
   );
@@ -85,42 +84,52 @@ export default function Home() {
     setError(null);
     setInterpretedClasses(null);
 
-    const result = await handleTimetableUpload(fileDataUri);
+    try {
+      const result = await handleTimetableUpload(fileDataUri);
 
-    setIsLoading(false);
-
-    if (result.success && result.data) {
-      if (result.data.length === 0) {
-        toast({
-          title: 'Timetable Scanned',
-          description: "We couldn't find any classes automatically. Please add them manually.",
-        });
-        setInterpretedClasses([]);
-      } else {
-        const parsed = parseRawClasses(result.data);
-        if (parsed.length === 0) {
-            toast({
-                title: 'Parsing Error',
-                description: "We found some data, but couldn't structure it properly. Please add your classes manually.",
-                variant: 'destructive',
-            });
-            setInterpretedClasses([]);
+      if (result.success && result.data) {
+        if (result.data.length === 0) {
+          toast({
+            title: 'Horario Escaneado',
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
+          });
+          setInterpretedClasses([]);
         } else {
-            toast({
-              title: 'Success!',
-              description: `Found ${parsed.length} classes. Please review them.`,
-            });
-            setInterpretedClasses(parsed);
+          const parsed = parseRawClasses(result.data);
+          if (parsed.length === 0) {
+              toast({
+                  title: 'Error de Análisis',
+                  description: "Encontramos algunos datos, pero no pudimos estructurarlos correctamente. Por favor, añade tus clases manualmente.",
+                  variant: 'destructive',
+              });
+              setInterpretedClasses([]);
+          } else {
+              toast({
+                title: '¡Éxito!',
+                description: `Se encontraron ${parsed.length} clases. Por favor, revísalas.`,
+              });
+              setInterpretedClasses(parsed);
+          }
         }
+      } else {
+        const errorMessage = result.error || 'No se pudo procesar la imagen del horario.';
+        setError(errorMessage);
+        toast({
+          title: 'Error al Subir',
+          description: errorMessage,
+          variant: 'destructive',
+        });
       }
-    } else {
-      const errorMessage = result.error || 'Could not process the timetable image.';
-      setError(errorMessage);
-      toast({
-        title: 'Upload Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+    } catch (e: any) {
+       const errorMessage = e.message || 'Ocurrió un error inesperado.';
+       setError(errorMessage);
+       toast({
+         title: 'Error de Red',
+         description: errorMessage,
+         variant: 'destructive',
+       });
+    } finally {
+        setIsLoading(false);
     }
   };
 
@@ -128,8 +137,8 @@ export default function Home() {
     setClasses(newClasses);
     setInterpretedClasses(null);
     toast({
-      title: 'Schedule Saved',
-      description: 'Your class schedule has been updated.',
+      title: 'Horario Guardado',
+      description: 'Tu horario de clases ha sido actualizado.',
     });
   };
 
@@ -140,18 +149,28 @@ export default function Home() {
   };
 
   const MainContent = useMemo(() => {
-    if (isUserLoading || isLoading) {
+    if (isUserLoading) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8">
+        <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 h-[60vh]">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <h2 className="text-xl font-semibold font-headline">{isLoading ? 'Analizando tu horario...' : 'Loading User...'}</h2>
-          <p className="text-muted-foreground">{isLoading ? 'La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.' : 'Please wait while we check your authentication status.'}</p>
+          <h2 className="text-xl font-semibold font-headline">Cargando...</h2>
+          <p className="text-muted-foreground">Por favor, espera mientras verificamos tu estado de autenticación.</p>
         </div>
       );
     }
     
     if (!user) {
       return <LoginPage />;
+    }
+
+    if (isLoading) {
+        return (
+          <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 h-[60vh]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <h2 className="text-xl font-semibold font-headline">Analizando tu horario...</h2>
+            <p className="text-muted-foreground">La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.</p>
+          </div>
+        );
     }
 
     if (error) {
