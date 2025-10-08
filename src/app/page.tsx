@@ -59,8 +59,7 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class,
     .filter((c): c is Omit<Class, 'id'> => c !== null);
 }
 
-function LoginPage() {
-  const { toast } = useToast();
+function LoginPage({ toast }: { toast: ReturnType<typeof useToast>['toast'] }) {
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 h-[60vh]">
       <h2 className="text-2xl font-bold mb-4">Bienvenido a ClassSync</h2>
@@ -89,11 +88,33 @@ export default function Home() {
   }, [user, firestore]);
   const { data: classes, isLoading: areClassesLoading } = useCollection<Class>(classesQuery);
 
+  const handleSaveSchedule = (newClasses: (Omit<Class, 'id'>)[]) => {
+    if (!user || !firestore) {
+      toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
+      return;
+    }
+
+    const userClassesRef = collection(firestore, 'users', user.uid, 'classEvents');
+
+    // Use a loop with non-blocking calls to enable detailed error reporting
+    newClasses.forEach((classData) => {
+      const { ...rest } = classData;
+      const docRef = doc(userClassesRef); // Create a new doc with a random ID
+      // The setDocumentNonBlocking function will handle emitting a detailed error on failure
+      setDocumentNonBlocking(docRef, { ...rest, userProfileId: user.uid }, {});
+    });
+
+    toast({
+      title: 'Guardando Horario...',
+      description: 'Tu horario de clases se está guardando en tu cuenta.',
+    });
+    setInterpretedClasses(null);
+  };
+  
   const onFileUpload = async (fileDataUri: string) => {
     setIsUploading(true);
     setError(null);
-    setInterpretedClasses(null);
-
+    
     try {
       const result = await handleTimetableUpload(fileDataUri);
 
@@ -101,24 +122,22 @@ export default function Home() {
         if (result.data.length === 0) {
           toast({
             title: 'Horario Escaneado',
-            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manually.",
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
           });
-          setInterpretedClasses([]);
         } else {
           const parsed = parseRawClasses(result.data);
           if (parsed.length === 0) {
               toast({
                   title: 'Error de Análisis',
-                  description: "Encontramos algunos datos, pero no pudimos estructurarlos correctamente. Por favor, añade tus clases manualmente.",
+                  description: "Encontramos algunos datos, pero no pudimos estructurarlos correctamente. Por favor, revisa la imagen o añade tus clases manualmente.",
                   variant: 'destructive',
               });
-              setInterpretedClasses([]);
           } else {
               toast({
                 title: '¡Éxito!',
-                description: `Se encontraron ${parsed.length} clases. Por favor, revísalas.`,
+                description: `Se encontraron y guardaron ${parsed.length} clases automáticamente.`,
               });
-              setInterpretedClasses(parsed);
+              handleSaveSchedule(parsed);
           }
         }
       } else {
@@ -143,27 +162,6 @@ export default function Home() {
     }
   };
 
- const handleSaveSchedule = (newClasses: (Omit<Class, 'id'>)[]) => {
-    if (!user || !firestore) {
-      toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
-      return;
-    }
-
-    const userClassesRef = collection(firestore, 'users', user.uid, 'classEvents');
-
-    // Use a loop with non-blocking calls to enable detailed error reporting
-    newClasses.forEach((classData) => {
-      const docRef = doc(userClassesRef); // Create a new doc with a random ID
-      // The setDocumentNonBlocking function will handle emitting a detailed error on failure
-      setDocumentNonBlocking(docRef, { ...classData, userProfileId: user.uid }, {});
-    });
-
-    toast({
-      title: 'Guardando Horario...',
-      description: 'Tu horario de clases se está guardando en tu cuenta.',
-    });
-    setInterpretedClasses(null);
-  };
 
   const handleReset = async () => {
     if (!user || !firestore || !classes) return;
@@ -195,14 +193,14 @@ export default function Home() {
     }
     
     if (!user) {
-      return <LoginPage />;
+      return <LoginPage toast={toast} />;
     }
 
     if (isUploading) {
         return (
           <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 h-[60vh]">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <h2 className="text-xl font-semibold font-headline">Analizando tu horario...</h2>
+            <h2 className="text-xl font-semibold font-headline">Analizando y guardando tu horario...</h2>
             <p className="text-muted-foreground">La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.</p>
           </div>
         );
@@ -216,18 +214,21 @@ export default function Home() {
         </div>
       );
     }
-    if (interpretedClasses !== null) {
-      return <ReviewSchedule initialClasses={interpretedClasses} onSave={handleSaveSchedule} />;
-    }
+    
+    // The ReviewSchedule component is no longer needed in the primary flow
+    // if (interpretedClasses !== null) {
+    //   return <ReviewSchedule initialClasses={interpretedClasses} onSave={handleSaveSchedule} />;
+    // }
+
     if (classes && classes.length > 0) {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isUploading, error, interpretedClasses, classes, user, isUserLoading, areClassesLoading]);
+  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast]);
 
   return (
     <>
-      <Header />
+      <Header toast={toast} />
       <main className="flex-grow container mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
