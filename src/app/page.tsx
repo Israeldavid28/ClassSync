@@ -143,7 +143,7 @@ export default function Home() {
     }
   };
 
- const handleSaveSchedule = (newClasses: Omit<Class, 'id'>[]) => {
+ const handleSaveSchedule = (newClasses: (Omit<Class, 'id'> & { tempId?: string })[]) => {
     if (!user || !firestore) {
       toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
       return;
@@ -153,9 +153,10 @@ export default function Home() {
 
     // Use a loop with non-blocking calls to enable detailed error reporting
     newClasses.forEach((classData) => {
+      const { tempId, ...classToSave } = classData; // Destructure to remove tempId
       const docRef = doc(userClassesRef); // Create a new doc with a random ID
       // The setDocumentNonBlocking function will handle emitting a detailed error on failure
-      setDocumentNonBlocking(docRef, classData, {});
+      setDocumentNonBlocking(docRef, classToSave, {});
     });
 
     toast({
