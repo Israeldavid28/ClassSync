@@ -21,7 +21,7 @@ export function useUser(): UserAuthResult {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    return { user: null, isUserLoading: true, userError: new Error("useUser debe usarse dentro de un FirebaseProvider.") };
+    throw new Error("useUser debe usarse dentro de un FirebaseProvider.");
   }
 
   const { user, isUserLoading, userError } = context;
@@ -40,9 +40,20 @@ export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     signInWithPopup(auth, provider).catch((error) => {
       console.error('Error de inicio de sesión con Google:', error);
+      if (error.code === 'auth/popup-closed-by-user') {
+        // This is a common case, so we can handle it gracefully.
+        toast({
+          title: 'Inicio de Sesión Cancelado',
+          description: 'La ventana de inicio de sesión se cerró antes de completar.',
+        });
+        return;
+      }
       toast({
         title: 'Fallo al Iniciar Sesión',
         description: error.message || 'Ocurrió un error inesperado durante el inicio de sesión.',
@@ -64,6 +75,9 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
 
     const result = await signInWithPopup(auth, provider);
     
