@@ -3,8 +3,10 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { useToast } from '@/hooks/use-toast';
+
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -61,6 +63,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   firestore,
   auth,
 }) => {
+  const { toast } = useToast();
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: auth.currentUser, // Initialize with current user if available
     isUserLoading: true,      // Start loading until first auth event
@@ -69,15 +72,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
-    // Check for redirect result when the component mounts.
-    getRedirectResult(auth).catch((error) => {
-      // This can happen if the user clicks "back" during the redirect flow.
-      // We don't want to crash the app, just log it.
-      console.error("Error processing redirect result:", error);
-    });
-
-    // The onAuthStateChanged listener handles both initial state and subsequent changes.
-    // It will fire after getRedirectResult has been processed and Firebase has a user.
+    // This is the primary auth state listener.
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => { // Auth state determined
@@ -89,9 +84,32 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     
+    // Check for redirect result when the component mounts.
+    // This should run only once.
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          // The onAuthStateChanged listener above will automatically handle the user state update.
+          // You can optionally get token here if needed.
+          // const credential = GoogleAuthProvider.credentialFromResult(result);
+          // const token = credential?.accessToken;
+        } else {
+          // No redirect result, which is the normal case for non-redirect sign-ins.
+        }
+      })
+      .catch((error) => {
+        // Handle errors from getRedirectResult.
+        console.error('Error processing redirect result:', error);
+        toast({
+          title: 'Fallo al Iniciar Sesión',
+          description: error.message || 'No se pudo completar el inicio de sesión por redirección.',
+          variant: 'destructive',
+        });
+      });
+    
     // On component unmount, unsubscribe from the listener.
     return () => unsubscribe(); 
-  }, [auth]); // Dependency on auth instance ensures listener is reset if auth service changes.
+  }, [auth, toast]); // Dependency on auth instance ensures listener is reset if auth service changes.
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {

@@ -15,7 +15,6 @@ import { useUser, handleGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { getAuth, getRedirectResult } from 'firebase/auth';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -75,36 +74,6 @@ export default function Home() {
   const firestore = useFirestore();
   const isMobile = useIsMobile();
   
-  // This effect handles the result of a redirect sign-in on mobile.
-  useEffect(() => {
-    // Only run on the client, and only if the user isn't already loaded.
-    if (typeof window !== 'undefined' && !user) {
-      const auth = getAuth();
-      // When the page loads after a redirect, this gets the result.
-      getRedirectResult(auth)
-        .then((result) => {
-          if (result) {
-            // User is signed in. The onAuthStateChanged listener will handle the state update.
-            // You can optionally get token here if needed: const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
-          }
-        })
-        .catch((error) => {
-          // Handle errors here.
-          console.error('Error during redirect sign-in:', error);
-          toast({
-            title: 'Fallo al Iniciar Sesión',
-            description: error.message || 'No se pudo completar el inicio de sesión.',
-            variant: 'destructive',
-          });
-        })
-        .finally(() => {
-          // In case the page is loading for a redirect result,
-          // we can manage a loading state. For now, the global `isUserLoading` handles this.
-        });
-    }
-  }, [toast, user]);
-
-
   // Fetch classes from Firestore
   const classesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -117,8 +86,8 @@ export default function Home() {
     try {
       // Pass the isMobile flag to the sign-in handler.
       await handleGoogleSignIn({ toast, isMobile });
-      // For popup, the user state updates almost immediately.
-      // For redirect, the page will reload, and the `useEffect` above will handle the result.
+      // For popup, the user state updates almost immediately via the onAuthStateChanged listener.
+      // For redirect, the page will reload, and the logic in FirebaseProvider will handle the result.
     } catch (e) {
        // Error is already toasted inside handleGoogleSignIn
     } finally {
@@ -126,6 +95,7 @@ export default function Home() {
       if (!isMobile) {
         setIsLoggingIn(false);
       }
+      // For mobile, isLoggingIn will stay true until the page redirects away.
     }
   };
   
