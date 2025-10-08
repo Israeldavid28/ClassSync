@@ -45,20 +45,12 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class,
     .filter((c): c is Omit<Class, 'id'> => c !== null);
 }
 
-function LoginPage({ toast }: { toast: ReturnType<typeof useToast>['toast'] }) {
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  const handleLogin = async () => {
-    setIsLoggingIn(true);
-    await getGoogleAccessToken({ toast });
-    // No need to setIsLoggingIn(false) because the component will unmount on successful login
-  };
-
+function LoginPage({ onLogin, isLoggingIn }: { onLogin: () => Promise<void>; isLoggingIn: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 h-[60vh]">
       <h2 className="text-2xl font-bold mb-4">Bienvenido a ClassSync</h2>
       <p className="text-muted-foreground mb-6">Inicia sesión con tu cuenta de Google para empezar.</p>
-      <Button onClick={handleLogin} size="lg" disabled={isLoggingIn}>
+      <Button onClick={onLogin} size="lg" disabled={isLoggingIn}>
         {isLoggingIn ? (
           <Loader2 className="mr-2 h-5 w-5 animate-spin" />
         ) : (
@@ -74,6 +66,7 @@ function LoginPage({ toast }: { toast: ReturnType<typeof useToast>['toast'] }) {
 export default function Home() {
   const [interpretedClasses, setInterpretedClasses] = useState<Omit<Class, 'id'>[] | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
@@ -85,7 +78,19 @@ export default function Home() {
     return collection(firestore, 'users', user.uid, 'classEvents');
   }, [user, firestore]);
   const { data: classes, isLoading: areClassesLoading } = useCollection<Class>(classesQuery);
-
+  
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await getGoogleAccessToken({ toast });
+      // The onAuthStateChanged listener will handle the user state update
+    } catch (e) {
+       // Error is already toasted inside getGoogleAccessToken
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+  
   const handleSaveSchedule = (newClasses: (Omit<Class, 'id'>)[]) => {
     if (!user || !firestore) {
       toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
@@ -191,7 +196,7 @@ export default function Home() {
     }
     
     if (!user) {
-      return <LoginPage toast={toast} />;
+      return <LoginPage onLogin={handleLogin} isLoggingIn={isLoggingIn} />;
     }
 
     if (isUploading) {
@@ -221,7 +226,7 @@ export default function Home() {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast, interpretedClasses]);
+  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast, interpretedClasses, isLoggingIn, handleLogin]);
 
   return (
     <>
