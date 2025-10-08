@@ -13,7 +13,7 @@ import {z} from 'genkit';
 
 const ClassDetailsSchema = z.object({
   name: z.string().describe('The name of the class.'),
-  time: z.string().describe('The time of the class.'),
+  time: z.string().describe('The time of the class (e.g., "MON 10:00-11:30").'),
   location: z.string().describe('The location of the class.'),
   professor: z.string().describe('The name of the professor teaching the class.'),
 });
@@ -33,27 +33,14 @@ export async function interpretTimetableImage(input: InterpretTimetableImageInpu
   return interpretTimetableImageFlow(input);
 }
 
-const extractClassDetails = ai.defineTool({
-  name: 'extractClassDetails',
-  description: 'Extracts class details (name, time, location, professor) from timetable image text.',
-  inputSchema: z.object({
-    timetableText: z.string().describe('The text extracted from the timetable image.'),
-  }),
-  outputSchema: z.array(ClassDetailsSchema),
-},
-async (input) => {
-  //TODO: Implement real tool to extract structured data, currently just returns an empty array.
-  return [];
-});
-
 const prompt = ai.definePrompt({
   name: 'interpretTimetableImagePrompt',
   input: {schema: InterpretTimetableImageInputSchema},
   output: {schema: InterpretTimetableImageOutputSchema},
-  tools: [extractClassDetails],
   prompt: `You are an AI assistant specialized in interpreting class timetables.
-  The user will provide an image of their timetable, and your task is to extract the class details, and use the extractClassDetails tool to structure the data.
-  Make sure to call the extractClassDetails with the text you extract from the timetable image.
+  The user will provide an image of their timetable, and your task is to extract the class details.
+  For each class, extract the name, time (including day), location, and professor.
+  Return the data as a structured JSON array based on the provided schema.
 
   Here is the timetable image: {{media url=photoDataUri}}
   `,
