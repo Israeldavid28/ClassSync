@@ -11,6 +11,9 @@ import { handleTimetableUpload } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useUser } from '@/firebase/auth/use-user';
+import { initiateGoogleSignIn } from '@/firebase/auth/use-user';
+import { FcGoogle } from 'react-icons/fc';
 
 const dayMap: { [key: string]: Class['day'] } = {
   MON: 'Monday',
@@ -55,12 +58,27 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Class[] {
     .filter((c): c is Class => c !== null);
 }
 
+function LoginPage() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center p-8">
+      <h2 className="text-2xl font-bold mb-4">Welcome to ClassSync</h2>
+      <p className="text-muted-foreground mb-6">Sign in with your Google account to get started.</p>
+      <Button onClick={initiateGoogleSignIn} size="lg">
+        <FcGoogle className="mr-2 h-5 w-5" />
+        Sign In with Google
+      </Button>
+    </div>
+  );
+}
+
+
 export default function Home() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [interpretedClasses, setInterpretedClasses] = useState<Class[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
 
   const onFileUpload = async (fileDataUri: string) => {
     setIsLoading(true);
@@ -122,15 +140,20 @@ export default function Home() {
   };
 
   const MainContent = useMemo(() => {
-    if (isLoading) {
+    if (isUserLoading || isLoading) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <h2 className="text-xl font-semibold font-headline">Analizando tu horario...</h2>
-          <p className="text-muted-foreground">La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.</p>
+          <h2 className="text-xl font-semibold font-headline">{isLoading ? 'Analizando tu horario...' : 'Loading User...'}</h2>
+          <p className="text-muted-foreground">{isLoading ? 'La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.' : 'Please wait while we check your authentication status.'}</p>
         </div>
       );
     }
+    
+    if (!user) {
+      return <LoginPage />;
+    }
+
     if (error) {
       return (
         <div className="text-center p-4 sm:p-8">
@@ -146,7 +169,7 @@ export default function Home() {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isLoading, error, interpretedClasses, classes]);
+  }, [isLoading, error, interpretedClasses, classes, user, isUserLoading]);
 
   return (
     <>

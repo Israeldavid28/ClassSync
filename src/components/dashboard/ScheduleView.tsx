@@ -6,8 +6,11 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClassCard } from './ClassCard';
 import { Button } from '../ui/button';
-import { PlusCircle, CalendarDays } from 'lucide-react';
+import { PlusCircle, CalendarDays, Share2 } from 'lucide-react';
 import { format, parse } from 'date-fns';
+import { useUser } from '@/firebase/auth/use-user';
+import { getGoogleAuthToken } from '@/lib/gapi';
+import { useToast } from '@/hooks/use-toast';
 
 interface ScheduleViewProps {
   classes: Class[];
@@ -16,8 +19,61 @@ interface ScheduleViewProps {
 
 const weekDays: Class['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+const dayToRRule: Record<string, string> = {
+  Monday: 'MO',
+  Tuesday: 'TU',
+  Wednesday: 'WE',
+  Thursday: 'TH',
+  Friday: 'FR',
+  Saturday: 'SA',
+  Sunday: 'SU',
+};
+
+async function addClassToCalendar(classInfo: Class, token: string) {
+  const event = {
+    summary: classInfo.name,
+    location: classInfo.location,
+    description: `Professor: ${classInfo.professor}`,
+    start: {
+      dateTime: `2024-01-01T${classInfo.startTime}:00`, // Placeholder date
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+    end: {
+      dateTime: `2024-01-01T${classInfo.endTime}:00`, // Placeholder date
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+    recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${dayToRRule[classInfo.day]}`],
+    reminders: {
+      useDefault: false,
+      overrides: [{ method: 'popup', minutes: classInfo.reminder }],
+    },
+  };
+
+  try {
+    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+    const data = await response.json();
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+    return data;
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    throw error;
+  }
+}
+
 export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
   const [today] = useState(format(new Date(), 'EEEE'));
+  const { user } = useUser();
+  const { toast } = useToast();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const sortedClasses = [...classes].sort((a, b) => {
     const timeA = parse(a.startTime, 'HH:mm', new Date());
@@ -30,6 +86,44 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
   const classesByDay = (day: Class['day']) => {
     return sortedClasses.filter(c => c.day === day);
   };
+  
+  const handleSyncToCalendar = async () => {
+    if (!user) {
+      toast({ title: 'Authentication required', description: 'Please sign in to sync your calendar.', variant: 'destructive' });
+      return;
+    }
+    setIsSyncing(true);
+    try {
+      const token = await getGoogleAuthToken();
+      if (!token) {
+        throw new Error('Failed to get Google Auth token.');
+      }
+      
+      toast({ title: 'Syncing schedule...', description: 'Adding your classes to Google Calendar. This may take a moment.' });
+      
+      const results = await Promise.allSettled(classes.map(c => addClassToCalendar(c, token)));
+      
+      const successfulSyncs = results.filter(r => r.status === 'fulfilled').length;
+      
+      if (successfulSyncs > 0) {
+        toast({ title: 'Sync Complete!', description: `${successfulSyncs} out of ${classes.length} classes were successfully synced to your Google Calendar.` });
+      }
+
+      results.forEach(result => {
+        if (result.status === 'rejected') {
+          console.error('Failed to sync a class:', result.reason);
+          toast({ title: 'Sync Error', description: `Failed to sync a class. ${result.reason}`, variant: 'destructive' });
+        }
+      });
+
+    } catch (error) {
+      console.error('Error syncing to Google Calendar:', error);
+      toast({ title: 'Calendar Sync Failed', description: (error as Error).message || 'Could not sync to Google Calendar.', variant: 'destructive' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   return (
     <div className="animate-in fade-in-50 duration-500">
@@ -41,10 +135,16 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
                 <p className="text-muted-foreground">Here's your academic week at a glance.</p>
             </div>
         </div>
-        <Button onClick={onReset} variant="outline">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Upload New Schedule
-        </Button>
+        <div className="flex gap-2">
+            <Button onClick={onReset} variant="outline">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Upload New Schedule
+            </Button>
+             <Button onClick={handleSyncToCalendar} disabled={isSyncing}>
+              <Share2 className="mr-2 h-4 w-4" />
+              {isSyncing ? 'Syncing...' : 'Sync to Calendar'}
+            </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="weekly" className="w-full">
