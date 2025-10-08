@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClassCard } from './ClassCard';
 import { Button } from '../ui/button';
-import { PlusCircle, CalendarDays, Share2 } from 'lucide-react';
+import { PlusCircle, CalendarDays, Share2, CheckCircle } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { useUser } from '@/firebase/auth/use-user';
 import { getGoogleAuthToken } from '@/lib/gapi';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ScheduleViewProps {
   classes: Class[];
@@ -38,16 +39,19 @@ function getNextDayOfWeekISO(dayOfWeek: string, startTime: string): string {
 
     const now = new Date();
     const [hours, minutes] = startTime.split(':').map(Number);
-    now.setHours(hours, minutes, 0, 0);
+    
+    // Create a date object for today at the specific time
+    const targetTimeToday = new Date();
+    targetTimeToday.setHours(hours, minutes, 0, 0);
 
     const currentDayIndex = now.getDay();
     let dayDifference = targetDayIndex - currentDayIndex;
 
-    // If the day is today but the time has already passed, schedule for next week
-    if (dayDifference === 0 && new Date() > now) {
+    // If the target day is today but the time has already passed, schedule for next week
+    if (dayDifference === 0 && now > targetTimeToday) {
       dayDifference += 7;
     } 
-    // If the day has passed this week, schedule for next week
+    // If the target day has passed this week, schedule for next week
     else if (dayDifference < 0) {
       dayDifference += 7;
     }
@@ -112,6 +116,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
   const { user } = useUser();
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncCompleted, setSyncCompleted] = useState(false);
 
   const sortedClasses = [...classes].sort((a, b) => {
     const timeA = parse(a.startTime, 'HH:mm', new Date());
@@ -131,20 +136,21 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
       return;
     }
     setIsSyncing(true);
+    setSyncCompleted(false);
     try {
       const token = await getGoogleAuthToken();
       if (!token) {
         throw new Error('Failed to get Google Auth token.');
       }
       
-      toast({ title: 'Syncing schedule...', description: 'Adding your classes to Google Calendar. This may take a moment.' });
+      toast({ title: 'Sincronizando horario...', description: 'Añadiendo tus clases a Google Calendar. Esto puede tardar un momento.' });
       
       const results = await Promise.allSettled(classes.map(c => addClassToCalendar(c, token)));
       
       const successfulSyncs = results.filter(r => r.status === 'fulfilled').length;
       
       if (successfulSyncs > 0) {
-        toast({ title: 'Sync Complete!', description: `${successfulSyncs} out of ${classes.length} classes were successfully synced to your Google Calendar.` });
+        setSyncCompleted(true);
       }
 
       results.forEach(result => {
@@ -180,15 +186,25 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
             </Button>
              <Button onClick={handleSyncToCalendar} disabled={isSyncing}>
               <Share2 className="mr-2 h-4 w-4" />
-              {isSyncing ? 'Syncing...' : 'Sync to Calendar'}
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar con el Calendario'}
             </Button>
         </div>
       </div>
+      
+      {syncCompleted && (
+        <Alert className="mb-6 border-green-500 text-green-700">
+            <CheckCircle className="h-4 w-4 !text-green-500" />
+            <AlertTitle className="text-green-700 font-bold">¡Sincronización Completa!</AlertTitle>
+            <AlertDescription className="text-green-600">
+                Se ha sincronizado su horario.
+            </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="weekly" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
-          <TabsTrigger value="weekly">Weekly View</TabsTrigger>
-          <TabsTrigger value="daily">Today's Classes</TabsTrigger>
+          <TabsTrigger value="weekly">Vista Semanal</TabsTrigger>
+          <TabsTrigger value="daily">Clases de Hoy</TabsTrigger>
         </TabsList>
         <TabsContent value="weekly" className="mt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
@@ -199,7 +215,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
                   {classesByDay(day).length > 0 ? (
                     classesByDay(day).map(cls => <ClassCard key={cls.id} classInfo={cls} />)
                   ) : (
-                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground pt-10">No classes</div>
+                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground pt-10">No hay clases</div>
                   )}
                 </div>
               </div>
@@ -209,13 +225,13 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
         <TabsContent value="daily" className="mt-6">
           <Card>
             <div className="p-6 space-y-4">
-              <h3 className="text-xl font-semibold font-headline">Classes for {today}</h3>
+              <h3 className="text-xl font-semibold font-headline">Clases para {today}</h3>
               {dailyClasses.length > 0 ? (
                 dailyClasses.map(cls => <ClassCard key={cls.id} classInfo={cls} />)
               ) : (
                 <div className="flex flex-col items-center justify-center text-center py-10">
-                  <p className="text-lg font-medium">No classes today!</p>
-                  <p className="text-muted-foreground">Enjoy your day off.</p>
+                  <p className="text-lg font-medium">¡No hay clases hoy!</p>
+                  <p className="text-muted-foreground">Disfruta tu día libre.</p>
                 </div>
               )}
             </div>
