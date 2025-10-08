@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useUser, initiateGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const dayMap: { [key: string]: Class['day'] } = {
@@ -143,7 +143,7 @@ export default function Home() {
     }
   };
 
- const handleSaveSchedule = (newClasses: (Omit<Class, 'id'> & { tempId?: string })[]) => {
+ const handleSaveSchedule = (newClasses: (Omit<Class, 'id'>)[]) => {
     if (!user || !firestore) {
       toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
       return;
@@ -153,10 +153,9 @@ export default function Home() {
 
     // Use a loop with non-blocking calls to enable detailed error reporting
     newClasses.forEach((classData) => {
-      const { tempId, ...classToSave } = classData; // Destructure to remove tempId
       const docRef = doc(userClassesRef); // Create a new doc with a random ID
       // The setDocumentNonBlocking function will handle emitting a detailed error on failure
-      setDocumentNonBlocking(docRef, { ...classToSave, userProfileId: user.uid }, {});
+      setDocumentNonBlocking(docRef, { ...classData, userProfileId: user.uid }, {});
     });
 
     toast({
