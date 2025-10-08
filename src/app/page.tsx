@@ -123,7 +123,7 @@ export default function Home() {
   const MainContent = useMemo(() => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center text-center p-8">
+        <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
           <h2 className="text-xl font-semibold font-headline">Sincronizando con el cosmos...</h2>
           <p className="text-muted-foreground">Nuestra IA está descifrando tu horario. ¡Espera un momento!</p>
@@ -132,7 +132,7 @@ export default function Home() {
     }
     if (error) {
       return (
-        <div className="text-center p-8">
+        <div className="text-center p-4 sm:p-8">
           <p className="text-destructive mb-4">{error}</p>
           <Button onClick={() => setError(null)}>Intentar de nuevo</Button>
         </div>
@@ -150,10 +150,10 @@ export default function Home() {
   return (
     <>
       <Header />
-      <main className="flex-grow container mx-auto p-4 md:p-8">
+      <main className="flex-grow container mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
-      <footer className="py-4 text-center text-sm text-muted-foreground">
+      <footer className="py-4 text-center text-sm text-muted-foreground px-4">
         <p>Construido con ❤️ para estudiantes de todo el mundo. ClassSync &copy; {new Date().getFullYear()}</p>
       </footer>
     </>

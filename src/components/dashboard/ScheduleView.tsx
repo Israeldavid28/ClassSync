@@ -53,7 +53,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
           <TabsTrigger value="daily">Today's Classes</TabsTrigger>
         </TabsList>
         <TabsContent value="weekly" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
             {weekDays.slice(0, 5).map(day => (
               <div key={day} className="space-y-4">
                 <h3 className="text-lg font-semibold font-headline text-center">{day}</h3>
