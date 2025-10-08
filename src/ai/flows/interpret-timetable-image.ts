@@ -12,8 +12,10 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const ClassDetailsSchema = z.object({
-  name: z.string().describe('The name of the class.'),
-  time: z.string().describe('The time of the class (e.g., "MON 10:00-11:30").'),
+  className: z.string().describe('The name of the class.'),
+  day: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).describe('The day of the week for the class.'),
+  startTime: z.string().describe('The start time of the class in HH:mm format (e.g., "09:00").'),
+  endTime: z.string().describe('The end time of the class in HH:mm format (e.g., "10:30").'),
   location: z.string().describe('The location of the class.'),
   professor: z.string().describe('The name of the professor teaching the class. If not found, use "N/A".'),
 });
@@ -39,7 +41,10 @@ const prompt = ai.definePrompt({
   output: {schema: InterpretTimetableImageOutputSchema},
   prompt: `You are an AI assistant specialized in interpreting class timetables.
   The user will provide an image of their timetable, and your task is to extract the class details.
-  For each class, extract the name, time (including day), location, and professor. If the professor's name is not available, use "N/A".
+  For each class, extract the name, day, start time, end time, location, and professor.
+  The day must be one of 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'.
+  Times must be in HH:mm format.
+  If the professor's name is not available, use "N/A".
   Return the data as a structured JSON array based on the provided schema.
 
   Here is the timetable image: {{media url=photoDataUri}}

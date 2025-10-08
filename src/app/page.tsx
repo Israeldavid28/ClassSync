@@ -17,36 +17,22 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-const dayMap: { [key: string]: Class['day'] } = {
-  MON: 'Monday',
-  TUE: 'Tuesday',
-  WED: 'Wednesday',
-  THU: 'Thursday',
-  FRI: 'Friday',
-  SAT: 'Saturday',
-  SUN: 'Sunday',
-};
 
 function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class, 'id'>[] {
   if (!rawClasses) return [];
   return rawClasses
     .map((raw) => {
       try {
-        const timeParts = raw.time.split(' ');
-        const dayAbbr = timeParts[0].toUpperCase();
-        const timeRange = timeParts[1];
-        const [startTime, endTime] = timeRange.split('-');
-
-        if (!dayMap[dayAbbr] || !startTime || !endTime) {
-          console.warn('Skipping invalid class data:', raw);
+        if (!raw.className || !raw.day || !raw.startTime || !raw.endTime) {
+          console.warn('Skipping invalid class data due to missing fields:', raw);
           return null;
         }
 
         return {
-          className: raw.name,
-          day: dayMap[dayAbbr],
-          startTime: startTime,
-          endTime: endTime,
+          className: raw.className,
+          day: raw.day,
+          startTime: raw.startTime,
+          endTime: raw.endTime,
           location: raw.location,
           professor: raw.professor,
           reminder: 15, // default reminder
