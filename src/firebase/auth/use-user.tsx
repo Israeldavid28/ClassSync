@@ -8,7 +8,7 @@ import {
   User,
 } from 'firebase/auth';
 import { useEffect, useState, useContext } from 'react';
-import { FirebaseContext, useFirebase } from '@/firebase/provider'; 
+import { FirebaseContext } from '@/firebase/provider'; 
 import { useToast } from '@/hooks/use-toast';
 
 export interface UserAuthResult {
@@ -21,8 +21,7 @@ export function useUser(): UserAuthResult {
   const context = useContext(FirebaseContext);
 
   if (context === undefined) {
-    // This case should ideally not be hit if the app is wrapped in FirebaseClientProvider
-    return { user: null, isUserLoading: true, userError: new Error("useUser must be used within a FirebaseProvider.") };
+    return { user: null, isUserLoading: true, userError: new Error("useUser debe usarse dentro de un FirebaseProvider.") };
   }
 
   const { user, isUserLoading, userError } = context;
@@ -43,18 +42,18 @@ export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
     signInWithPopup(auth, provider).catch((error) => {
-      console.error('Google Sign-In Error:', error);
+      console.error('Error de inicio de sesión con Google:', error);
       toast({
-        title: 'Sign-In Failed',
-        description: error.message || 'An unexpected error occurred during sign-in.',
+        title: 'Fallo al Iniciar Sesión',
+        description: error.message || 'Ocurrió un error inesperado durante el inicio de sesión.',
         variant: 'destructive',
       });
     });
   } catch(e) {
-      console.error("Firebase not initialized. Cannot sign in.");
+      console.error("Firebase no está inicializado. No se puede iniciar sesión.");
        toast({
         title: 'Error',
-        description: 'Firebase is not ready yet, please wait a moment and try again.',
+        description: 'Firebase aún no está listo, espera un momento y vuelve a intentarlo.',
         variant: 'destructive',
       });
   }
@@ -64,35 +63,32 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
   try {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
-    // This scope is crucial for Google Calendar API access.
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
 
     const result = await signInWithPopup(auth, provider);
     
-    // The OAuth access token is available on the credential object.
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (credential?.accessToken) {
       return credential.accessToken;
     } else {
       toast({
-        title: 'Authentication Error',
-        description: 'Could not retrieve access token from Google. Please try signing in again.',
+        title: 'Error de Autenticación',
+        description: 'No se pudo obtener el token de acceso de Google. Por favor, intenta iniciar sesión de nuevo.',
         variant: 'destructive',
       });
       return null;
     }
   } catch (error: any) {
-    console.error('Error getting Google access token:', error);
-    // This will prompt the user to sign in if they need to grant permissions.
+    console.error('Error al obtener el token de acceso de Google:', error);
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
       toast({
-        title: 'Login Required',
-        description: 'Please complete the sign-in process to sync your calendar.',
+        title: 'Inicio de Sesión Requerido',
+        description: 'Por favor, completa el proceso de inicio de sesión para sincronizar tu calendario.',
       });
     } else {
       toast({
-        title: 'Authentication Failed',
-        description: error.message || 'An unexpected error occurred while trying to authenticate with Google.',
+        title: 'Fallo de Autenticación',
+        description: error.message || 'Ocurrió un error inesperado al intentar autenticarse con Google.',
         variant: 'destructive',
       });
     }
@@ -108,14 +104,14 @@ export function handleSignOut({ toast }: HandleSignOutParams) {
    try {
     const auth = getAuth();
     signOut(auth).catch((error) => {
-      console.error('Sign-Out Error:', error);
+      console.error('Error al cerrar sesión:', error);
       toast({
-        title: 'Sign-Out Failed',
-        description: 'Could not sign out. Please try again.',
+        title: 'Fallo al Cerrar Sesión',
+        description: 'No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.',
         variant: 'destructive',
       });
     });
    } catch(e) {
-      console.error("Firebase not initialized. Cannot sign out.");
+      console.error("Firebase no está inicializado. No se puede cerrar sesión.");
    }
 }

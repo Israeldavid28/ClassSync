@@ -200,21 +200,20 @@ export default function Home() {
         </div>
       );
     }
-    
-    // The ReviewSchedule component is no longer needed in the primary flow
-    // if (interpretedClasses !== null) {
-    //   return <ReviewSchedule initialClasses={interpretedClasses} onSave={handleSaveSchedule} />;
-    // }
+
+    if (interpretedClasses !== null) {
+      return <ReviewSchedule initialClasses={interpretedClasses} onSave={handleSaveSchedule} />;
+    }
 
     if (classes && classes.length > 0) {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast]);
+  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast, interpretedClasses]);
 
   return (
     <>
-      <Header toast={toast} />
+      <Header />
       <main className="flex-grow container mx-auto px-4 py-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>

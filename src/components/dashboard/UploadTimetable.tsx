@@ -28,8 +28,8 @@ export function UploadTimetable({ onUpload }: UploadTimetableProps) {
       reader.readAsDataURL(file);
     } else {
       toast({
-        title: 'Invalid File Type',
-        description: 'Please upload an image file (e.g., PNG, JPG).',
+        title: 'Tipo de Archivo Inválido',
+        description: 'Por favor, sube un archivo de imagen (ej. PNG, JPG).',
         variant: 'destructive',
       });
     }
@@ -87,7 +87,7 @@ export function UploadTimetable({ onUpload }: UploadTimetableProps) {
                     <p className="mb-2 text-sm text-muted-foreground">
                       <span className="font-semibold text-primary">Haz clic para subir</span> o arrastra y suelta
                     </p>
-                    <p className="text-xs text-muted-foreground">PNG, JPG, or GIF</p>
+                    <p className="text-xs text-muted-foreground">PNG, JPG, o GIF</p>
                   </div>
                 </label>
                 <Input id="dropzone-file" type="file" className="absolute h-full w-full opacity-0 cursor-pointer" onChange={handleChange} accept="image/*" />

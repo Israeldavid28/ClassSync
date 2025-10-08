@@ -17,7 +17,15 @@ interface ScheduleViewProps {
   onReset: () => void;
 }
 
-const weekDays: Class['day'][] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const weekDays: {day: Class['day'], label: string}[] = [
+    { day: 'Monday', label: 'Lunes' },
+    { day: 'Tuesday', label: 'Martes' },
+    { day: 'Wednesday', label: 'Miércoles' },
+    { day: 'Thursday', label: 'Jueves' },
+    { day: 'Friday', label: 'Viernes' },
+    { day: 'Saturday', label: 'Sábado' },
+    { day: 'Sunday', label: 'Domingo' },
+];
 
 const dayToRRule: Record<string, string> = {
   Monday: 'MO',
@@ -39,18 +47,15 @@ function getNextDayOfWeekISO(dayOfWeek: string, startTime: string): string {
     const now = new Date();
     const [hours, minutes] = startTime.split(':').map(Number);
     
-    // Create a date object for today at the specific time
     const targetTimeToday = new Date();
     targetTimeToday.setHours(hours, minutes, 0, 0);
 
     const currentDayIndex = now.getDay();
     let dayDifference = targetDayIndex - currentDayIndex;
 
-    // If the target day is today but the time has already passed, schedule for next week
     if (dayDifference === 0 && now > targetTimeToday) {
       dayDifference += 7;
     } 
-    // If the target day has passed this week, schedule for next week
     else if (dayDifference < 0) {
       dayDifference += 7;
     }
@@ -59,7 +64,6 @@ function getNextDayOfWeekISO(dayOfWeek: string, startTime: string): string {
     nextDate.setDate(now.getDate() + dayDifference);
     nextDate.setHours(hours, minutes, 0, 0);
 
-    // Format to YYYY-MM-DD
     const year = nextDate.getFullYear();
     const month = String(nextDate.getMonth() + 1).padStart(2, '0');
     const day = String(nextDate.getDate()).padStart(2, '0');
@@ -74,7 +78,7 @@ async function addClassToCalendar(classInfo: Class, token: string) {
   const event = {
     summary: classInfo.className,
     location: classInfo.location,
-    description: `Professor: ${classInfo.professor}`,
+    description: `Profesor: ${classInfo.professor}`,
     start: {
       dateTime: `${nextClassDate}T${classInfo.startTime}:00`,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -123,7 +127,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
     return timeA.getTime() - timeB.getTime();
   });
 
-  const dailyClasses = sortedClasses.filter(c => c.day === today);
+  const dailyClasses = sortedClasses.filter(c => c.day.toLowerCase() === today.toLowerCase());
 
   const classesByDay = (day: Class['day']) => {
     return sortedClasses.filter(c => c.day === day);
@@ -131,7 +135,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
   
   const handleSyncToCalendar = async () => {
     if (!user) {
-      toast({ title: 'Authentication required', description: 'Please sign in to sync your calendar.', variant: 'destructive' });
+      toast({ title: 'Autenticación requerida', description: 'Por favor, inicia sesión para sincronizar tu calendario.', variant: 'destructive' });
       return;
     }
     setIsSyncing(true);
@@ -140,8 +144,6 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
     try {
       const token = await getGoogleAccessToken({ toast });
       if (!token) {
-        // The getGoogleAccessToken function will show a toast asking the user to log in
-        // if it fails to get a token. We can just stop the process here.
         setIsSyncing(false);
         return;
       }
@@ -159,13 +161,13 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
       results.forEach(result => {
         if (result.status === 'rejected') {
           console.error('Failed to sync a class:', result.reason);
-          toast({ title: 'Sync Error', description: `Failed to sync a class. ${result.reason}`, variant: 'destructive' });
+          toast({ title: 'Error de Sincronización', description: `No se pudo sincronizar una clase. ${result.reason}`, variant: 'destructive' });
         }
       });
 
     } catch (error) {
       console.error('Error syncing to Google Calendar:', error);
-      toast({ title: 'Calendar Sync Failed', description: (error as Error).message || 'Could not sync to Google Calendar.', variant: 'destructive' });
+      toast({ title: 'Fallo al Sincronizar Calendario', description: (error as Error).message || 'No se pudo sincronizar con Google Calendar.', variant: 'destructive' });
     } finally {
       setIsSyncing(false);
     }
@@ -178,14 +180,14 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
         <div className="flex items-center gap-3">
             <CalendarDays className="h-8 w-8 text-primary" />
             <div>
-                <h2 className="text-3xl font-bold font-headline">Your Weekly Schedule</h2>
-                <p className="text-muted-foreground">Here's your academic week at a glance.</p>
+                <h2 className="text-3xl font-bold font-headline">Tu Horario Semanal</h2>
+                <p className="text-muted-foreground">Aquí está tu semana académica de un vistazo.</p>
             </div>
         </div>
         <div className="flex gap-2">
             <Button onClick={onReset} variant="outline">
               <PlusCircle className="mr-2 h-4 w-4" />
-              Upload New Schedule
+              Subir Nuevo Horario
             </Button>
              <Button onClick={handleSyncToCalendar} disabled={isSyncing}>
               <Share2 className="mr-2 h-4 w-4" />
@@ -211,12 +213,12 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
         </TabsList>
         <TabsContent value="weekly" className="mt-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
-            {weekDays.slice(0, 5).map(day => (
-              <div key={day} className="space-y-4">
-                <h3 className="text-lg font-semibold font-headline text-center">{day}</h3>
+            {weekDays.slice(0, 5).map(item => (
+              <div key={item.day} className="space-y-4">
+                <h3 className="text-lg font-semibold font-headline text-center">{item.label}</h3>
                 <div className="space-y-4 rounded-lg bg-muted/50 p-4 min-h-[200px]">
-                  {classesByDay(day).length > 0 ? (
-                    classesByDay(day).map(cls => <ClassCard key={cls.id} classInfo={cls} />)
+                  {classesByDay(item.day).length > 0 ? (
+                    classesByDay(item.day).map(cls => <ClassCard key={cls.id} classInfo={cls} />)
                   ) : (
                     <div className="flex items-center justify-center h-full text-sm text-muted-foreground pt-10">No hay clases</div>
                   )}
@@ -228,7 +230,7 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
         <TabsContent value="daily" className="mt-6">
           <Card>
             <div className="p-6 space-y-4">
-              <h3 className="text-xl font-semibold font-headline">Clases para {today}</h3>
+              <h3 className="text-xl font-semibold font-headline">Clases para hoy ({weekDays.find(d => d.day.toLowerCase() === today.toLowerCase())?.label})</h3>
               {dailyClasses.length > 0 ? (
                 dailyClasses.map(cls => <ClassCard key={cls.id} classInfo={cls} />)
               ) : (

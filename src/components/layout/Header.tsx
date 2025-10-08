@@ -58,7 +58,7 @@ export const Header: FC = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleSignOut({toast})}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Cerrar Sesión</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

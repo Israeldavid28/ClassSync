@@ -28,7 +28,7 @@ export function ClassCard({ classInfo }: ClassCardProps) {
         <div className="pt-1">
             <Badge variant="secondary" className="flex items-center gap-1.5 w-fit">
                 <Bell className="h-3 w-3"/>
-                {classInfo.reminder} min reminder
+                Recordatorio {classInfo.reminder} min
             </Badge>
         </div>
       </CardContent>
