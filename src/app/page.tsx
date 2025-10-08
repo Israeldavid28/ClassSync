@@ -125,8 +125,8 @@ export default function Home() {
       return (
         <div className="flex flex-col items-center justify-center text-center p-8">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <h2 className="text-xl font-semibold font-headline">Syncing with the cosmos...</h2>
-          <p className="text-muted-foreground">Our AI is deciphering your schedule. Hang tight!</p>
+          <h2 className="text-xl font-semibold font-headline">Sincronizando con el cosmos...</h2>
+          <p className="text-muted-foreground">Nuestra IA está descifrando tu horario. ¡Espera un momento!</p>
         </div>
       );
     }
@@ -134,7 +134,7 @@ export default function Home() {
       return (
         <div className="text-center p-8">
           <p className="text-destructive mb-4">{error}</p>
-          <Button onClick={() => setError(null)}>Try Again</Button>
+          <Button onClick={() => setError(null)}>Intentar de nuevo</Button>
         </div>
       );
     }
@@ -154,7 +154,7 @@ export default function Home() {
         <div className="w-full max-w-7xl mx-auto">{MainContent}</div>
       </main>
       <footer className="py-4 text-center text-sm text-muted-foreground">
-        <p>Built with ❤️ for students everywhere. ClassSync &copy; {new Date().getFullYear()}</p>
+        <p>Construido con ❤️ para estudiantes de todo el mundo. ClassSync &copy; {new Date().getFullYear()}</p>
       </footer>
     </>
   );

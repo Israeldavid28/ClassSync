@@ -85,16 +85,16 @@ export function UploadTimetable({ onUpload }: UploadTimetableProps) {
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <UploadCloud className="w-10 h-10 mb-3 text-muted-foreground" />
                     <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                      <span className="font-semibold text-primary">Haz clic para subir</span> o arrastra y suelta
                     </p>
                     <p className="text-xs text-muted-foreground">PNG, JPG, or GIF</p>
                   </div>
                 </label>
                 <Input id="dropzone-file" type="file" className="absolute h-full w-full opacity-0 cursor-pointer" onChange={handleChange} accept="image/*" />
               </div>
-              <p className="text-center text-sm text-muted-foreground">or select a file from your device</p>
+              <p className="text-center text-sm text-muted-foreground">o selecciona un archivo de tu dispositivo</p>
               <Button type="button" className="w-full" onClick={() => document.getElementById('dropzone-file')?.click()}>
-                Choose File
+                Elegir archivo
               </Button>
             </form>
           </CardContent>
