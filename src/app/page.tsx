@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Class } from '@/lib/types';
 import type { InterpretTimetableImageOutput } from '@/ai/flows/interpret-timetable-image';
 import { Header } from '@/components/layout/Header';
@@ -8,11 +8,14 @@ import { UploadTimetable } from '@/components/dashboard/UploadTimetable';
 import { ReviewSchedule } from '@/components/dashboard/ReviewSchedule';
 import { ScheduleView } from '@/components/dashboard/ScheduleView';
 import { handleTimetableUpload } from '@/app/actions';
-import { useToast, type Toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUser, initiateGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, doc, writeBatch } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const dayMap: { [key: string]: Class['day'] } = {
   MON: 'Monday',
@@ -24,10 +27,10 @@ const dayMap: { [key: string]: Class['day'] } = {
   SUN: 'Sunday',
 };
 
-function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Class[] {
+function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class, 'id'>[] {
   if (!rawClasses) return [];
   return rawClasses
-    .map((raw, index) => {
+    .map((raw) => {
       try {
         const timeParts = raw.time.split(' ');
         const dayAbbr = timeParts[0].toUpperCase();
@@ -40,7 +43,6 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Class[] {
         }
 
         return {
-          id: `${raw.name}-${index}-${new Date().getTime()}`,
           name: raw.name,
           day: dayMap[dayAbbr],
           startTime: startTime,
@@ -54,7 +56,7 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Class[] {
         return null;
       }
     })
-    .filter((c): c is Class => c !== null);
+    .filter((c): c is Omit<Class, 'id'> => c !== null);
 }
 
 function LoginPage() {
@@ -73,15 +75,22 @@ function LoginPage() {
 
 
 export default function Home() {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [interpretedClasses, setInterpretedClasses] = useState<Class[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [interpretedClasses, setInterpretedClasses] = useState<Omit<Class, 'id'>[] | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  // Fetch classes from Firestore
+  const classesQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'classEvents');
+  }, [user, firestore]);
+  const { data: classes, isLoading: areClassesLoading } = useCollection<Class>(classesQuery);
 
   const onFileUpload = async (fileDataUri: string) => {
-    setIsLoading(true);
+    setIsUploading(true);
     setError(null);
     setInterpretedClasses(null);
 
@@ -130,32 +139,74 @@ export default function Home() {
          variant: 'destructive',
        });
     } finally {
-        setIsLoading(false);
+        setIsUploading(false);
     }
   };
 
-  const handleSaveSchedule = (newClasses: Class[]) => {
-    setClasses(newClasses);
-    setInterpretedClasses(null);
-    toast({
-      title: 'Horario Guardado',
-      description: 'Tu horario de clases ha sido actualizado.',
+  const handleSaveSchedule = (newClasses: Omit<Class, 'id'>[]) => {
+     if (!user || !firestore) {
+        toast({ title: "Error", description: "Debes iniciar sesión para guardar tu horario.", variant: "destructive" });
+        return;
+    }
+    
+    const batch = writeBatch(firestore);
+    const userClassesRef = collection(firestore, 'users', user.uid, 'classEvents');
+
+    newClasses.forEach((classData) => {
+        const docRef = doc(userClassesRef); // Create a new doc with a random ID
+        batch.set(docRef, classData);
+    });
+
+    batch.commit().then(() => {
+        toast({
+            title: 'Horario Guardado',
+            description: 'Tu horario de clases ha sido guardado en tu cuenta.',
+        });
+        setInterpretedClasses(null);
+    }).catch((e) => {
+        console.error("Error saving schedule: ", e);
+        toast({
+            title: 'Error al Guardar',
+            description: 'No se pudo guardar tu horario. Por favor, intenta de nuevo.',
+            variant: 'destructive',
+        });
     });
   };
 
-  const handleReset = () => {
-    setClasses([]);
-    setInterpretedClasses(null);
-    setError(null);
+  const handleReset = async () => {
+    if (!user || !firestore || !classes) return;
+    
+    const batch = writeBatch(firestore);
+    classes.forEach(c => {
+        const docRef = doc(firestore, 'users', user.uid, 'classEvents', c.id);
+        batch.delete(docRef);
+    });
+    
+    try {
+        await batch.commit();
+        setInterpretedClasses(null);
+        setError(null);
+        toast({
+            title: 'Horario Borrado',
+            description: 'Tu horario ha sido borrado. Ahora puedes subir uno nuevo.',
+        });
+    } catch (e) {
+        console.error("Error deleting schedule: ", e);
+        toast({
+            title: 'Error al Borrar',
+            description: 'No se pudo borrar tu horario. Por favor, intenta de nuevo.',
+            variant: 'destructive',
+        });
+    }
   };
 
   const MainContent = useMemo(() => {
-    if (isUserLoading) {
+    if (isUserLoading || areClassesLoading) {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 h-[60vh]">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
           <h2 className="text-xl font-semibold font-headline">Cargando...</h2>
-          <p className="text-muted-foreground">Por favor, espera mientras verificamos tu estado de autenticación.</p>
+          <p className="text-muted-foreground">Por favor, espera un momento.</p>
         </div>
       );
     }
@@ -164,7 +215,7 @@ export default function Home() {
       return <LoginPage />;
     }
 
-    if (isLoading) {
+    if (isUploading) {
         return (
           <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8 h-[60vh]">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -185,11 +236,11 @@ export default function Home() {
     if (interpretedClasses !== null) {
       return <ReviewSchedule initialClasses={interpretedClasses} onSave={handleSaveSchedule} />;
     }
-    if (classes.length > 0) {
+    if (classes && classes.length > 0) {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isLoading, error, interpretedClasses, classes, user, isUserLoading]);
+  }, [isUploading, error, interpretedClasses, classes, user, isUserLoading, areClassesLoading]);
 
   return (
     <>

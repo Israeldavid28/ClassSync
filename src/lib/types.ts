@@ -1,5 +1,5 @@
 export interface Class {
-  id: string;
+  id: string; // This will be the Firestore document ID
   name: string;
   day: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
   startTime: string; // "10:00"
