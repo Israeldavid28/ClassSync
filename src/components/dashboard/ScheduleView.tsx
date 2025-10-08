@@ -29,17 +29,55 @@ const dayToRRule: Record<string, string> = {
   Sunday: 'SU',
 };
 
+function getNextDayOfWeekISO(dayOfWeek: string, startTime: string): string {
+    const dayIndexMap: { [key: string]: number } = {
+        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6
+    };
+    const targetDayIndex = dayIndexMap[dayOfWeek];
+
+    const now = new Date();
+    const [hours, minutes] = startTime.split(':').map(Number);
+    now.setHours(hours, minutes, 0, 0);
+
+    const currentDayIndex = now.getDay();
+    let dayDifference = targetDayIndex - currentDayIndex;
+
+    // If the day is today but the time has already passed, schedule for next week
+    if (dayDifference === 0 && new Date() > now) {
+      dayDifference += 7;
+    } 
+    // If the day has passed this week, schedule for next week
+    else if (dayDifference < 0) {
+      dayDifference += 7;
+    }
+    
+    const nextDate = new Date();
+    nextDate.setDate(now.getDate() + dayDifference);
+    nextDate.setHours(hours, minutes, 0, 0);
+
+    // Format to YYYY-MM-DD
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const day = String(nextDate.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+}
+
+
 async function addClassToCalendar(classInfo: Class, token: string) {
+  const nextClassDate = getNextDayOfWeekISO(classInfo.day, classInfo.startTime);
+
   const event = {
     summary: classInfo.className,
     location: classInfo.location,
     description: `Professor: ${classInfo.professor}`,
     start: {
-      dateTime: `2024-01-01T${classInfo.startTime}:00`, // Placeholder date
+      dateTime: `${nextClassDate}T${classInfo.startTime}:00`,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     end: {
-      dateTime: `2024-01-01T${classInfo.endTime}:00`, // Placeholder date
+      dateTime: `${nextClassDate}T${classInfo.endTime}:00`,
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
     recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${dayToRRule[classInfo.day]}`],
