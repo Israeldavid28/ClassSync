@@ -11,7 +11,7 @@ import { handleTimetableUpload } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useUser, getGoogleAccessToken } from '@/firebase/auth/use-user';
+import { useUser, handleGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -82,10 +82,10 @@ export default function Home() {
   const handleLogin = async () => {
     setIsLoggingIn(true);
     try {
-      await getGoogleAccessToken({ toast });
+      await handleGoogleSignIn({ toast });
       // The onAuthStateChanged listener will handle the user state update
     } catch (e) {
-       // Error is already toasted inside getGoogleAccessToken
+       // Error is already toasted inside handleGoogleSignIn
     } finally {
       setIsLoggingIn(false);
     }
@@ -125,7 +125,7 @@ export default function Home() {
         if (result.data.length === 0) {
           toast({
             title: 'Horario Escaneado',
-            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manually.",
           });
         } else {
           const parsed = parseRawClasses(result.data);

@@ -31,9 +31,42 @@ export function useUser(): UserAuthResult {
 
 type ToastFunc = ReturnType<typeof useToast>['toast'];
 
+export async function handleGoogleSignIn({ toast }: { toast: ToastFunc }): Promise<void> {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+  provider.setCustomParameters({
+    prompt: 'select_account'
+  });
+
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error: any) {
+    console.error('Error durante el inicio de sesión con Google:', error);
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      // This is a common case, and we don't need to show a toast, as the user intentionally closed the popup.
+    } else {
+      toast({
+        title: 'Fallo al Iniciar Sesión',
+        description: error.message || 'Ocurrió un error inesperado al intentar autenticarse con Google.',
+        variant: 'destructive',
+      });
+    }
+  }
+}
+
 export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Promise<string | null> {
   try {
     const auth = getAuth();
+    if (!auth.currentUser) {
+      toast({
+        title: 'Inicio de Sesión Requerido',
+        description: 'Debes iniciar sesión primero para sincronizar tu calendario.',
+        variant: 'destructive'
+      });
+      return null;
+    }
+
     const provider = new GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
     provider.setCustomParameters({
