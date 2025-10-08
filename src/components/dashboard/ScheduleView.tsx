@@ -8,8 +8,7 @@ import { ClassCard } from './ClassCard';
 import { Button } from '../ui/button';
 import { PlusCircle, CalendarDays, Share2, CheckCircle } from 'lucide-react';
 import { format, parse } from 'date-fns';
-import { useUser } from '@/firebase/auth/use-user';
-import { getGoogleAuthToken } from '@/lib/gapi';
+import { useUser, getGoogleAccessToken } from '@/firebase/auth/use-user';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -137,10 +136,14 @@ export function ScheduleView({ classes, onReset }: ScheduleViewProps) {
     }
     setIsSyncing(true);
     setSyncCompleted(false);
+
     try {
-      const token = await getGoogleAuthToken();
+      const token = await getGoogleAccessToken({ toast });
       if (!token) {
-        throw new Error('Failed to get Google Auth token.');
+        // The getGoogleAccessToken function will show a toast asking the user to log in
+        // if it fails to get a token. We can just stop the process here.
+        setIsSyncing(false);
+        return;
       }
       
       toast({ title: 'Sincronizando horario...', description: 'Añadiendo tus clases a Google Calendar. Esto puede tardar un momento.' });

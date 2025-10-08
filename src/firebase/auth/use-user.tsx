@@ -37,7 +37,6 @@ interface InitiateGoogleSignInParams {
 }
 
 export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
-  // It's better to get auth from the provider if possible, but getAuth() is a fallback
   try {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
@@ -58,6 +57,46 @@ export function initiateGoogleSignIn({ toast }: InitiateGoogleSignInParams) {
         description: 'Firebase is not ready yet, please wait a moment and try again.',
         variant: 'destructive',
       });
+  }
+}
+
+export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Promise<string | null> {
+  try {
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+    // This scope is crucial for Google Calendar API access.
+    provider.addScope('https://www.googleapis.com/auth/calendar.events');
+
+    const result = await signInWithPopup(auth, provider);
+    
+    // The OAuth access token is available on the credential object.
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      return credential.accessToken;
+    } else {
+      toast({
+        title: 'Authentication Error',
+        description: 'Could not retrieve access token from Google. Please try signing in again.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  } catch (error: any) {
+    console.error('Error getting Google access token:', error);
+    // This will prompt the user to sign in if they need to grant permissions.
+    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      toast({
+        title: 'Login Required',
+        description: 'Please complete the sign-in process to sync your calendar.',
+      });
+    } else {
+      toast({
+        title: 'Authentication Failed',
+        description: error.message || 'An unexpected error occurred while trying to authenticate with Google.',
+        variant: 'destructive',
+      });
+    }
+    return null;
   }
 }
 
