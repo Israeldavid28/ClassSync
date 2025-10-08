@@ -83,10 +83,13 @@ export default function Home() {
     setIsLoggingIn(true);
     try {
       await handleGoogleSignIn({ toast });
-      // The onAuthStateChanged listener will handle the user state update
+      // The onAuthStateChanged listener in FirebaseProvider will handle the user state update.
+      // We don't need to do anything else here.
     } catch (e) {
        // Error is already toasted inside handleGoogleSignIn
     } finally {
+      // The loading state will be resolved by the isUserLoading flag from the useUser hook.
+      // We can set this to false, but the UI transition is primarily handled by isUserLoading.
       setIsLoggingIn(false);
     }
   };
@@ -125,7 +128,7 @@ export default function Home() {
         if (result.data.length === 0) {
           toast({
             title: 'Horario Escaneado',
-            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manually.",
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
           });
         } else {
           const parsed = parseRawClasses(result.data);
@@ -226,7 +229,7 @@ export default function Home() {
       return <ScheduleView classes={classes} onReset={handleReset} />;
     }
     return <UploadTimetable onUpload={onFileUpload} />;
-  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, toast, interpretedClasses, isLoggingIn, handleLogin]);
+  }, [isUploading, error, classes, user, isUserLoading, areClassesLoading, interpretedClasses, isLoggingIn]);
 
   return (
     <>

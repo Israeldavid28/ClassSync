@@ -8,7 +8,7 @@ import {
   User,
 } from 'firebase/auth';
 import { useEffect, useState, useContext } from 'react';
-import { FirebaseContext } from '@/firebase/provider'; 
+import { FirebaseContext, useFirebase } from '@/firebase/provider'; 
 import { useToast } from '@/hooks/use-toast';
 
 export interface UserAuthResult {
@@ -18,14 +18,7 @@ export interface UserAuthResult {
 }
 
 export function useUser(): UserAuthResult {
-  const context = useContext(FirebaseContext);
-
-  if (context === undefined) {
-    throw new Error("useUser debe usarse dentro de un FirebaseProvider.");
-  }
-
-  const { user, isUserLoading, userError } = context;
-
+  const { user, isUserLoading, userError } = useFirebase();
   return { user, isUserLoading, userError };
 }
 
@@ -40,6 +33,8 @@ export async function handleGoogleSignIn({ toast }: { toast: ToastFunc }): Promi
   });
 
   try {
+    // Calling this function will trigger the onAuthStateChanged listener in the provider
+    // which will then update the user state for the whole application.
     await signInWithPopup(auth, provider);
   } catch (error: any) {
     console.error('Error durante el inicio de sesión con Google:', error);
@@ -69,6 +64,7 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
 
     const provider = new GoogleAuthProvider();
     provider.addScope('https://www.googleapis.com/auth/calendar.events');
+    // Force account selection to ensure the user can re-grant permissions if needed.
     provider.setCustomParameters({
       prompt: 'select_account'
     });
@@ -79,6 +75,7 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
     if (credential?.accessToken) {
       return credential.accessToken;
     } else {
+      // This case should ideally not be reached if signInWithPopup is successful
       toast({
         title: 'Error de Autenticación',
         description: 'No se pudo obtener el token de acceso de Google. Por favor, intenta iniciar sesión de nuevo.',
@@ -90,12 +87,12 @@ export async function getGoogleAccessToken({ toast }: { toast: ToastFunc }): Pro
     console.error('Error al obtener el token de acceso de Google:', error);
     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
       toast({
-        title: 'Inicio de Sesión Requerido',
-        description: 'Por favor, completa el proceso de inicio de sesión para sincronizar tu calendario.',
+        title: 'Sincronización Cancelada',
+        description: 'Debes completar el proceso de inicio de sesión para sincronizar tu calendario.',
       });
     } else {
       toast({
-        title: 'Fallo al Iniciar Sesión',
+        title: 'Fallo al Obtener Permisos',
         description: error.message || 'Ocurrió un error inesperado al intentar autenticarse con Google.',
         variant: 'destructive',
       });
