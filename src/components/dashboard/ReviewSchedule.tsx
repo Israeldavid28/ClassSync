@@ -31,7 +31,7 @@ export function ReviewSchedule({ initialClasses, onSave }: ReviewScheduleProps) 
   const addNewClass = () => {
     const newClass: EditableClass = {
       tempId: `new-${Date.now()}`,
-      name: '',
+      className: '',
       day: 'Monday',
       startTime: '09:00',
       endTime: '10:00',
@@ -68,7 +68,7 @@ export function ReviewSchedule({ initialClasses, onSave }: ReviewScheduleProps) 
             <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <Label htmlFor={`name-${cls.tempId}`}>Class Name</Label>
-                <Input id={`name-${cls.tempId}`} value={cls.name} onChange={(e) => handleClassChange(cls.tempId, 'name', e.target.value)} placeholder="e.g., Intro to Psychology" />
+                <Input id={`name-${cls.tempId}`} value={cls.className} onChange={(e) => handleClassChange(cls.tempId, 'className', e.target.value)} placeholder="e.g., Intro to Psychology" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor={`day-${cls.tempId}`}>Day of the Week</Label>

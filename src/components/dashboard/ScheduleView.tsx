@@ -31,7 +31,7 @@ const dayToRRule: Record<string, string> = {
 
 async function addClassToCalendar(classInfo: Class, token: string) {
   const event = {
-    summary: classInfo.name,
+    summary: classInfo.className,
     location: classInfo.location,
     description: `Professor: ${classInfo.professor}`,
     start: {

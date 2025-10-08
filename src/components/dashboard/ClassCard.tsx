@@ -11,7 +11,7 @@ export function ClassCard({ classInfo }: ClassCardProps) {
   return (
     <Card className="bg-card hover:shadow-md transition-shadow duration-300">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-bold font-headline">{classInfo.name}</CardTitle>
+        <CardTitle className="text-base font-bold font-headline">{classInfo.className}</CardTitle>
         <CardDescription className="flex items-center gap-2 pt-1">
             <Clock className="h-3.5 w-3.5" /> {classInfo.startTime} - {classInfo.endTime}
         </CardDescription>

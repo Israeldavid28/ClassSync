@@ -43,7 +43,7 @@ function parseRawClasses(rawClasses: InterpretTimetableImageOutput): Omit<Class,
         }
 
         return {
-          name: raw.name,
+          className: raw.name,
           day: dayMap[dayAbbr],
           startTime: startTime,
           endTime: endTime,
@@ -156,7 +156,7 @@ export default function Home() {
       const { tempId, ...classToSave } = classData; // Destructure to remove tempId
       const docRef = doc(userClassesRef); // Create a new doc with a random ID
       // The setDocumentNonBlocking function will handle emitting a detailed error on failure
-      setDocumentNonBlocking(docRef, classToSave, {});
+      setDocumentNonBlocking(docRef, { ...classToSave, userProfileId: user.uid }, {});
     });
 
     toast({
