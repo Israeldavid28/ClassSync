@@ -15,7 +15,7 @@ import { useUser, initiateGoogleSignIn } from '@/firebase/auth/use-user';
 import { FcGoogle } from 'react-icons/fc';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, writeBatch } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const dayMap: { [key: string]: Class['day'] } = {
   MON: 'Monday',
@@ -101,7 +101,7 @@ export default function Home() {
         if (result.data.length === 0) {
           toast({
             title: 'Horario Escaneado',
-            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manualmente.",
+            description: "No pudimos encontrar ninguna clase automáticamente. Por favor, añádelas manually.",
           });
           setInterpretedClasses([]);
         } else {
@@ -143,61 +143,44 @@ export default function Home() {
     }
   };
 
-  const handleSaveSchedule = (newClasses: Omit<Class, 'id'>[]) => {
-     if (!user || !firestore) {
-        toast({ title: "Error", description: "Debes iniciar sesión para guardar tu horario.", variant: "destructive" });
-        return;
+ const handleSaveSchedule = (newClasses: Omit<Class, 'id'>[]) => {
+    if (!user || !firestore) {
+      toast({ title: 'Error', description: 'Debes iniciar sesión para guardar tu horario.', variant: 'destructive' });
+      return;
     }
-    
-    const batch = writeBatch(firestore);
+
     const userClassesRef = collection(firestore, 'users', user.uid, 'classEvents');
 
+    // Use a loop with non-blocking calls to enable detailed error reporting
     newClasses.forEach((classData) => {
-        const docRef = doc(userClassesRef); // Create a new doc with a random ID
-        batch.set(docRef, classData);
+      const docRef = doc(userClassesRef); // Create a new doc with a random ID
+      // The setDocumentNonBlocking function will handle emitting a detailed error on failure
+      setDocumentNonBlocking(docRef, classData, {});
     });
 
-    batch.commit().then(() => {
-        toast({
-            title: 'Horario Guardado',
-            description: 'Tu horario de clases ha sido guardado en tu cuenta.',
-        });
-        setInterpretedClasses(null);
-    }).catch((e) => {
-        console.error("Error saving schedule: ", e);
-        toast({
-            title: 'Error al Guardar',
-            description: 'No se pudo guardar tu horario. Por favor, intenta de nuevo.',
-            variant: 'destructive',
-        });
+    toast({
+      title: 'Guardando Horario...',
+      description: 'Tu horario de clases se está guardando en tu cuenta.',
     });
+    setInterpretedClasses(null);
   };
 
   const handleReset = async () => {
     if (!user || !firestore || !classes) return;
-    
-    const batch = writeBatch(firestore);
+
+    // Use individual non-blocking deletes for better error context
     classes.forEach(c => {
-        const docRef = doc(firestore, 'users', user.uid, 'classEvents', c.id);
-        batch.delete(docRef);
+      const docRef = doc(firestore, 'users', user.uid, 'classEvents', c.id);
+      // The deleteDocumentNonBlocking function will handle emitting a detailed error on failure
+      deleteDocumentNonBlocking(docRef);
     });
-    
-    try {
-        await batch.commit();
-        setInterpretedClasses(null);
-        setError(null);
-        toast({
-            title: 'Horario Borrado',
-            description: 'Tu horario ha sido borrado. Ahora puedes subir uno nuevo.',
-        });
-    } catch (e) {
-        console.error("Error deleting schedule: ", e);
-        toast({
-            title: 'Error al Borrar',
-            description: 'No se pudo borrar tu horario. Por favor, intenta de nuevo.',
-            variant: 'destructive',
-        });
-    }
+
+    setInterpretedClasses(null);
+    setError(null);
+    toast({
+      title: 'Borrando Horario',
+      description: 'Tu horario anterior ha sido borrado. Ahora puedes subir uno nuevo.',
+    });
   };
 
   const MainContent = useMemo(() => {
