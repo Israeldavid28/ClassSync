@@ -96,10 +96,11 @@ export default function Home() {
         }
       }
     } else {
-      setError(result.error || 'An unknown error occurred.');
+      const errorMessage = result.error || 'Could not process the timetable image.';
+      setError(errorMessage);
       toast({
         title: 'Upload Failed',
-        description: result.error || 'Could not process the timetable image.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
@@ -125,8 +126,8 @@ export default function Home() {
       return (
         <div className="flex flex-col items-center justify-center text-center p-4 sm:p-8">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <h2 className="text-xl font-semibold font-headline">Sincronizando con el cosmos...</h2>
-          <p className="text-muted-foreground">Nuestra IA está descifrando tu horario. ¡Espera un momento!</p>
+          <h2 className="text-xl font-semibold font-headline">Analizando tu horario...</h2>
+          <p className="text-muted-foreground">La IA de Gemini está leyendo la imagen. Esto puede tardar un momento.</p>
         </div>
       );
     }

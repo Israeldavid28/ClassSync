@@ -11,8 +11,12 @@ export async function handleTimetableUpload(photoDataUri: string): Promise<{ suc
     const result = await interpretTimetableImage({ photoDataUri });
 
     return { success: true, data: result };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error interpreting timetable:', error);
-    return { success: false, error: 'An unexpected error occurred while interpreting the timetable.' };
+    let errorMessage = 'An unexpected error occurred while interpreting the timetable.';
+    if (error instanceof Error) {
+      errorMessage = `AI Error: ${error.message}`;
+    }
+    return { success: false, error: errorMessage };
   }
 }
